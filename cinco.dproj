@@ -2,7 +2,7 @@
 		<PropertyGroup>
 			<ProjectGuid>{D3CAA343-4A27-4A18-9021-29D61582C7BE}</ProjectGuid>
 			<MainSource>cinco.dpr</MainSource>
-			<Config Condition="'$(Config)'==''">Debug</Config>
+			<Config Condition="'$(Config)'==''">Release</Config>
 			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
 			<ProjectVersion>12.0</ProjectVersion>
 		</PropertyGroup>
@@ -48,6 +48,17 @@
 			<DelphiCompile Include="cinco.dpr">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
+			<DCCReference Include="UCinco.pas">
+				<Form>Fcinco</Form>
+			</DCCReference>
+			<DCCReference Include="Utablero.pas"/>
+			<DCCReference Include="UJugada.pas"/>
+			<DCCReference Include="UColosus.pas"/>
+			<DCCReference Include="UColosus2.pas"/>
+			<DCCReference Include="UHashtable.pas"/>
+			<DCCReference Include="Utipos2.pas"/>
+			<DCCReference Include="UJugada2.pas"/>
+			<DCCReference Include="UThreadMetodo.pas"/>
 			<None Include="ModelSupport\UHashtable\UHashtable.txvpck">
 				<ContainerId>File</ContainerId>
 			</None>
@@ -76,17 +87,6 @@
 				<ContainerId>File</ContainerId>
 			</None>
 			<None Include="cinco.todo"/>
-			<DCCReference Include="UCinco.pas">
-				<Form>Fcinco</Form>
-			</DCCReference>
-			<DCCReference Include="Utablero.pas"/>
-			<DCCReference Include="UJugada.pas"/>
-			<DCCReference Include="UColosus.pas"/>
-			<DCCReference Include="UColosus2.pas"/>
-			<DCCReference Include="UHashtable.pas"/>
-			<DCCReference Include="Utipos2.pas"/>
-			<DCCReference Include="UJugada2.pas"/>
-			<DCCReference Include="UThreadMetodo.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

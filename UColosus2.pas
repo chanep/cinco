@@ -239,27 +239,33 @@ var
    m: integer;
    aux: Tui;
 begin
-   if aVacio then Result:= true
+   if aVacio then Result:= (i = 7) and (j = 7)
    else begin
       Result:= false;
       if (((aBBFichas[0,i] or aBBFichas[1,i]) and (1 shl j)) = 0) then
       begin
-         c:= aTablero2BB[i,j];
-         for m:=0 to 3 do
-         begin
-            if (c[m].i <> -1) then
+         if (aFichasTotales = 2) then
+            Result:= ((Abs(i - 7) = 5) and (Abs(j - 7) <= 5)) or ((Abs(i - 7) <= 5) and (Abs(j - 7) = 5))
+         else if (aFichasTotales = 0) then
+            Result:= (i = 7) and (j = 7)
+         else begin
+            c:= aTablero2BB[i,j];
+            for m:=0 to 3 do
             begin
-               if (aFichasTotales <= aFinPegado) and (aTurno = 1) and (aYo=1) and (aPegado = 1) then
-                  aux:= Tui($00070000 shr (17 - c[m].j))
-               else
-                  aux:= Tui($001F0000 shr (18 - c[m].j));
-               if (((aBBFichas[0,c[m].i] or aBBFichas[1,c[m].i]) and aux) <> 0) then
+               if (c[m].i <> -1) then
                begin
-                  Result:= true;
-                  exit;
+                  if (aFichasTotales <= aFinPegado) and (aTurno = 1) and (aYo=1) and (aPegado = 1) then
+                     aux:= Tui($00070000 shr (17 - c[m].j))
+                  else
+                     aux:= Tui($001F0000 shr (18 - c[m].j));
+                  if (((aBBFichas[0,c[m].i] or aBBFichas[1,c[m].i]) and aux) <> 0) then
+                  begin
+                     Result:= true;
+                     exit;
+                  end;
                end;
             end;
-         end
+         end;
       end;
    end;
 end;
@@ -1593,8 +1599,8 @@ begin
       end
       else
       begin
-         REsult.i:= Random(5) + 5;
-         REsult.j:= Random(5) + 5;
+         REsult.i:= 7;
+         REsult.j:= 7;
       end;
    end else
    begin

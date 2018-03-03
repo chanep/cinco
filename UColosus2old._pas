@@ -1,0 +1,457 @@
+unit UColosus2;
+
+interface
+
+uses Classes, SysUtils, Contnrs, math, StrUtils, Ujugada, Utipos, Ucolosus;
+
+
+type
+
+TColosus2 = class(Tcolosus)
+public
+  Amejorpabs: array[0..9] of Real;
+public
+  function evaluar31(jugo: char; td, td2: Tvectores; ci,
+    cj: Integer; var punt_abs: Real; p_lim: Real; var hubo3o4, hubo3o4adv: Boolean): Real;
+  function lamejor(turno:char; td:tvectores; prof: integer; punt_ini: real): TJugada; override;
+  procedure lamejor2(turno:char; td:tvectores; prof, profl, profh, profhh: integer;
+                   punt_ini: real; ljant: TObjectlist);
+  procedure tamizar(lj: TobjectList; prof, profl, profh, profhh: Integer;
+                     h3o4gral, h3o4graladv: Boolean; var sigue: Boolean);
+  procedure tamizar1(lj: TObjectList);
+  function seguir(prof, profl, profh, profhh: Integer; pabsm: Real;
+                    h3o4gral, h3o4graladv: Boolean): Boolean;
+  end;
+
+
+
+implementation
+
+function Comparar(Item1, Item2: Pointer): Integer;
+begin
+  if TJugada2(Item1).p > TJugada2(Item2).p then Result:= -1;
+  if TJugada2(Item1).p < TJugada2(Item2).p then Result:= 1;
+  if TJugada2(Item1).p = TJugada2(Item2).p then Result:= 0;
+end;
+
+function Comparar_abs(Item1, Item2: Pointer): Integer;
+begin
+  if TJugada2(Item1).pabs > TJugada2(Item2).pabs then Result:= -1;
+  if TJugada2(Item1).pabs < TJugada2(Item2).pabs then Result:= 1;
+  if TJugada2(Item1).pabs = TJugada2(Item2).pabs then Result:= 0;
+end;
+
+{ TColosus2 }
+
+
+
+procedure TColosus2.tamizar1(lj: TobjectList);
+var
+  selaux, i: Integer;
+begin
+  lj.Sort(@comparar);
+  selaux:= min(lj.Count,sel2);
+  for i:=(lj.Count-1) downto selaux do
+     lj.delete(i);
+end;
+
+function TColosus2.seguir(prof, profl, profh, profhh: Integer; pabsm: Real; h3o4gral,
+  h3o4graladv: Boolean): Boolean;
+var
+  i: Integer;
+  h3o4: Boolean;
+  coef: Real;
+begin
+  Result:= true;
+
+  if pabsm > 500 then
+  begin
+     Result:= false;
+     exit;
+  end;
+
+  if (prof < profl) then
+  begin
+     Result:= true;
+     exit;
+  end;
+
+  if (prof >= profl) and (prof < profh) then
+  begin
+     for i:=0 to (prof -2) do
+     begin
+       if
+        if (((i+2) mod 2)=0) then h3o4:= h3o4gral else h3o4:= h3o4graladv;
+        if (((prof+i) mod 2)=1) then
+        begin
+          if (not(pabsm>(self.Amejorpabs[i] - AumbralDescarte)) or h3o4) then
+          begin
+             Result:= false;
+             exit;
+          end;
+        end;
+     end;
+  end;
+
+  if (prof >= profh) and (prof < profhh) then
+  begin
+     for i:=0 to (prof -2) do
+     begin
+        if (((i+2) mod 2)=0) then h3o4:= h3o4gral else h3o4:= h3o4graladv;
+        if (((prof+i) mod 2)=1) then
+        begin
+           if not((pabsm>=self.Amejorpabs[i]) or h3o4) then
+           begin
+              Result:= false;
+              exit;
+           end;
+        end;
+     end;
+  end;
+
+  if (prof >= profhh) then
+     Result:= false;
+
+end;
+
+
+procedure TColosus2.tamizar(lj: TobjectList; prof, profl, profh, profhh: Integer;
+                              h3o4gral, h3o4graladv: Boolean; var sigue: Boolean);
+var
+  selaux, i: Integer;
+  jm, jug: Tjugada2;
+begin
+  jm:= TJugada2(lj[0]);
+
+  if seguir(prof,profl,profh,profhh,jm.pabs,h3o4gral,h3o4graladv) then
+  begin
+    sigue:= true;
+    if (prof < profl) then
+    begin
+       selaux:= min(lj.Count,sel2);
+       if (jm.p > 40) then selaux:= 1;
+       for i:=(lj.Count-1) downto selaux do
+          lj.delete(i);
+       exit;
+    end;
+
+    if (prof >= profl) and (prof < profh) then
+    begin
+       i:=0;
+       while (i < lj.Count) do
+       begin
+         jug:= TJugada2(lj[i]);
+         if (((jug.p < (jm.p - AumbralDescarte)) or (i >= self.sel)) and
+               not(jug.Ahubo3o4) and not(jug.Ahubo3o4adv))
+               or (jug.p < (jm.p - 20)) then
+            lj.Delete(i)
+         else
+            inc(i);
+       end;
+       exit;
+    end;
+
+    if (prof >= profh) and (prof < profhh)  then
+    begin
+       i:=0;
+       while (i < lj.Count) do
+       begin
+         jug:= TJugada2(lj[i]);
+         if (not(jug.Ahubo3o4) and not(jug.Ahubo3o4adv)) or
+                 (jug.p < (jm.p - 20))  then
+            lj.Delete(i)
+         else
+            inc(i);
+       end;
+    end;
+  end else
+    sigue:= false;
+end;
+
+
+procedure TColosus2.lamejor2(turno:char; td:tvectores; prof, profl, profh, profhh: integer;
+                   punt_ini: real; ljant: TObjectlist);
+var
+  i, j, k: Integer;
+  p2: Real;
+  tdaux, tdaux2: Tvectores;
+  turnoaux: char;
+  punt, punt_abs:Real;
+  ljact, lj2: TObjectList;
+  jugadaant, jugadaact: TJugada2;
+  selaux: integer;
+  p_lim: real;
+  hubo3o4, hubo3o4adv, h3o4gral, h3o4graladv, h3o4aux, sigue: Boolean;
+begin
+
+self.Amejorpabs[prof-1]:= -10000;
+self.Aprofmax:= max(Aprofmax, prof);
+
+if ljant.count > 0 then
+begin
+  if turno = 'o' then turnoaux:= 'x' else turnoaux:= 'o';
+  for k:=0 to (ljant.Count - 1) do
+  begin
+     tdaux:= td;
+     jugadaant:= TJugada2(ljant[k]);
+   if (jugadaant.pabs > -500) then
+   begin
+     p_lim:=-10000;
+     self.probar_ficha(turno,jugadaant.i,jugadaant.j,tdaux);
+     punt:= evaluar31(turno,td,tdaux,jugadaant.i,jugadaant.j,punt_abs, p_lim, hubo3o4, hubo3o4adv);
+     jugadaant.p:= punt + puntaje_pos(jugadaant.i,jugadaant.j) + punt_ini;
+     jugadaant.pabs:= punt_abs + puntaje_pos(jugadaant.i,jugadaant.j) + punt_ini;
+     ljact:= TObjectList.Create;
+     h3o4gral:= false;
+     h3o4graladv:= false;
+     for i:=0 to 14 do
+        for j:=0 to 14 do
+        begin
+           tdaux2:= tdaux;
+           if self.probar_ficha(turnoaux,i,j,tdaux2) and (es_cerca(i,j,tdaux) or vacio) then
+           begin
+              inc(nodos);
+              punt:= evaluar31(turnoaux,tdaux,tdaux2,i,j,punt_abs, p_lim, hubo3o4, hubo3o4adv);
+              punt:= punt + puntaje_pos(i,j) - jugadaant.pabs;
+              punt_abs:= punt_abs + puntaje_pos(i,j) - jugadaant.pabs;
+              if (prof >= (profl -1)) then
+                 p_lim:= max(p_lim,punt);
+              jugadaact:= TJugada2.Create(i,j,punt,punt_abs,hubo3o4,hubo3o4adv);
+              ljact.Add(jugadaact);
+              if ((prof + 1) mod 2)=0 then
+              begin
+                 h3o4aux:= hubo3o4;
+                 hubo3o4:= hubo3o4adv;
+                 hubo3o4adv:= h3o4aux;
+              end;
+              if hubo3o4 then h3o4gral:= true;
+              if hubo3o4adv then h3o4graladv:= true;
+           end;
+        end;
+      ljact.Sort(@comparar);
+      tamizar(ljact,prof+1,profl,profh, profhh, h3o4gral, h3o4graladv, sigue);
+      if sigue then
+         lamejor2(turnoaux,tdaux,prof+1,profl,profh,profhh,-jugadaant.pabs,ljact);
+      jugadaant.prox:= TJugada2(ljact[0]).copiar;
+      jugadaant.pabs:= -TJugada2(ljact[0]).pabs;
+      ljact.Free;
+    end; //if jugadaant.pabs < -500
+    self.Amejorpabs[prof-1]:= max(Amejorpabs[prof-1],jugadaant.pabs);
+   end; //for k
+   ljant.Sort(@comparar_abs);
+end else
+begin
+  p_lim:=-10000;
+  for i:=0 to 14 do
+    for j:=0 to 14 do
+    begin
+      tdaux:= td;
+      if self.probar_ficha(turno,i,j,tdaux) and (es_cerca(i,j,td) or vacio) then
+      begin
+        inc(nodos);
+        punt:= evaluar31(turno,td,tdaux,i,j,punt_abs, p_lim, hubo3o4, hubo3o4adv);
+        punt:= punt + puntaje_pos(i,j) + punt_ini;
+        punt_abs:= punt_abs + puntaje_pos(i,j) + punt_ini;
+        jugadaant:= TJugada2.Create(i,j,punt,punt_abs, hubo3o4, hubo3o4adv);
+        ljant.Add(jugadaant);
+      end;
+    end;
+  tamizar1(ljant);
+end;
+end;
+
+
+function TColosus2.lamejor(turno: char; td: tvectores;
+  prof: integer; punt_ini: real): TJugada;
+var
+  i, j, k: Integer;
+  p2: Real;
+  tdaux: Tvectores;
+  turnoaux: char;
+  punt, punt_abs:Real;
+  ljant, lj2: TObjectList;
+  jugada: TJugada2;
+  selaux: integer;
+  p_lim: real;
+begin
+    self.nodos:= 0;
+    ljant:= TObjectList.create;
+
+    if (prof >= 1) then
+       lamejor2(turno,tablerod,1,1,1,1,punt_ini,ljant);
+
+    if (prof >= 2) then
+          lamejor2(turno,tablerod,1,2,2,2,punt_ini,ljant);
+    self.Aprofmax:= 0;
+    if (prof >= 3) then
+        lamejor2(turno,tablerod,1,2,self.Aprofh,self.Aprofhh,punt_ini,ljant);
+
+    Result:= TJugada2(ljant[0]);
+end;
+
+
+
+function TColosus2.evaluar31(jugo: char; td, td2: Tvectores; ci,
+  cj: Integer; var punt_abs: Real; p_lim: Real; var hubo3o4, hubo3o4adv: Boolean): Real;
+var
+  fila: array[0..3] of Integer;
+  i,j,k,l,pos,n, m: Integer;
+  cuatros, tres: Integer;
+  punt,plus, p_aux, p_aux_adv: Real;
+  p: PChar;
+  tds: array[0..1] of Tvectores;
+  Vpats: array[0..1] of TVpatrones;
+  Vpunt_abs_jugo, Vpunt_abs_adv: TVpuntaje;
+
+begin
+  tres:= 0;
+  cuatros:=0;
+  punt_abs:= 0;
+  punt:= 0;
+  p_aux:= 0;
+  p_aux_adv:= 0;
+  hubo3o4:= false;
+  hubo3o4adv:= false;
+  fila[0]:= ci;
+  fila[1]:= cj + 15;
+  fila[2]:= -1;
+  fila[3]:= -1;
+  if ((ci-cj)<11) and ((cj-ci)<1) then
+     fila[2]:=40-ci+cj;
+  if ((cj-ci)>0) and ((cj-ci)<11) then
+     fila[2]:=41+cj-1-ci;
+  if ((cj+ci)>3) and ((ci+cj)<15) then
+     fila[3]:=51+ci+cj-4;
+  if ((ci+cj)>14) and ((ci+cj)<25) then
+     fila[3]:=62+ci-1+cj-14;
+
+
+  if jugo='o' then
+  begin
+     Vpats[0]:= Vpat_o;
+     Vpats[1]:= Vpat_x;
+  end else
+  begin
+     Vpats[0]:= Vpat_x;
+     Vpats[1]:= Vpat_o;
+  end;
+
+  for m:=0 to 1 do
+  begin
+     tds[0]:=td;
+     tds[1]:=td2;
+     for n:=0 to 1 do
+     begin
+       p_aux:= 0;
+       p_aux_adv:= 0;
+       for i:=0 to (Length(Vpats[m]) - 1) do
+       begin
+          if  (p_aux > 1.5*ubreak*Vpunt_jugo[i]) and
+              (p_aux_adv > 1.5*ubreak*Vpunt_adv[i]) and (i>9) and usabreak1 then
+          begin
+              p_lim:= p_lim;
+              break;
+          end;
+
+          if (p_lim > ubreak*Vpunt_adv[i]) and (i>9) and usabreak2 then
+          begin
+              p_lim:= p_lim;
+              break;
+          end;
+          for j:=0 to 3 do
+             if fila[j] <> -1 then
+             begin
+                p:= StrPos(tds[n,fila[j]],Vpats[m,i]);
+
+                if p <> nil then
+                begin
+                   pos:= p - tds[n,fila[j]];
+                   k:= 0;
+                   while Vpats[m,i,k] <> #0 do
+                   begin
+                      tds[n,fila[j],pos + k]:= '-';
+                      inc(k);
+                   end;
+                   if (i>1) and (i<7) then
+                   begin
+                     inc(cuatros);
+                     if m=0 then hubo3o4:= true else hubo3o4adv:= true;
+                   end;
+                   if (i>6) and (i<10) then
+                   begin
+                     inc(tres);
+                     if m=0 then hubo3o4:= true else hubo3o4adv:= true;
+                   end;
+
+                   p_aux:= p_aux + Vpunt_jugo[i];
+                   p_aux_adv:= p_aux_adv + Vpunt_adv[i];
+
+                end; // if p<>nil
+              end; // if fila[
+       end;  //for i:=0 to..
+       if m = 0 then
+       begin
+          if n=0 then
+          begin
+             punt:= punt - p_aux;
+             punt_abs:= punt_abs - p_aux_adv;
+          end else
+          begin
+             punt:= punt + p_aux;
+             punt_abs:= punt_abs + p_aux;
+          end;
+       end else
+       begin
+          if n=0 then
+          begin
+             punt:= punt + p_aux_adv;
+             punt_abs:= punt_abs + p_aux;
+          end else
+          begin
+             punt:= punt - p_aux_adv;
+             punt_abs:= punt_abs - p_aux_adv;
+          end;
+       end;
+       if cuatros > 1 then plus:= 10;
+       if (cuatros > 0) and (tres > 0) then plus:= plus + 3;
+       if (tres > 1) then plus:= plus + 0.8;
+       if m=0 then
+       begin
+          if n=0 then
+          begin
+             punt:= punt - plus;
+             punt_abs:= punt_abs - 1.5*plus;
+          end else
+          begin
+             punt:= punt + plus;
+             punt_abs:= punt_abs + plus;
+          end;
+       end else
+       begin
+          if n=0 then
+          begin
+             punt:= punt + 1.5*plus;
+             punt_abs:= punt_abs + plus;
+          end else
+          begin
+             punt:= punt - 1.5*plus;
+             punt_abs:= punt_abs - 1.5*plus;
+          end;
+       end;
+
+       cuatros:= 0;
+       tres:= 0;
+       plus:= 0;
+    end;  //for n:=0 to ...
+end;  //for m:=0 to..
+
+
+Result:= punt;
+end;
+
+
+
+
+
+
+end.
